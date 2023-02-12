@@ -7,6 +7,7 @@ Builds a sqlite database from which to choose passwords
 """
 
 # handy for sqlite interactions
+import concurrent.futures
 import sqlite3
 
 

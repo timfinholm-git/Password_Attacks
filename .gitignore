@@ -127,3 +127,9 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+#PyCharm Magic
+.idea
+
+# Local on purpose:
+http_creds.db
